@@ -1,35 +1,45 @@
 
-# Лабораторная работа по теме "Проектирование адресного пространства"
+# Лабораторная работа по теме "Построение Underlay сети (OSPF)"
 
 ### Цель:
-- Собрать схему CLOS;
-- Распределить адресное пространство;
+- исследовать построение Underlay сети с использованием OSPF
 
 ### Топология
 
 ![Топология](target_topo.avif "Топология")
 
-### Задачи
-- Собрать топологию CLOS, как на схеме выше
-- Распределить адресное пространство для Underlay сети
-- План работы, адресное пространство, схема сети, настройки - зафиксированы в документации
-
 ## Реализация
 
-На топологии приведены адреса для Leaf, Spine узлов и линков между ними.
-![Топология](topology1.png "Топология")
+В конфигурацию устройств был добавлен OSPF протокол.
+Интервалы `Hello=1` и `Dead=4`.
+Интерфейсы все в `point-to-point`.
+Лупбек адреса добавлены как `passive`.
+Все интерфейсы в `area 0`.
 
-Распределение адресов для Loopback интерфейсов
-| Device Type | IP Range | 
-|:-------------|:----------|
-| Leaf | 10.255.254.0/24, FC00:254::0/120|
-| Spine | 10.255.255.0/24, FC00:255::0/120|
+Пример конфигурации OSPF для Leaf-1
+```
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 hello-interval 1
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 dead-interval 4
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 hello-interval 1
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 dead-interval 4
+set protocols ospf area 0.0.0.0 interface lo0.0 passive
+set policy-options policy-statement ecmp term 1 then load-balance per-packet
+```
 
-Распределение адресов для p2p интерфейсов<br />
-Leaf-N <-> Spine | 10.0.n.l/30.<br />
-Где:<br />
-N - номер leaf свитча, <br />
-L - номер линка, считатся от номера сети. 0, 4, 8, и т.д.<br />
+Пример конфигурации OSPF для Spine-1
+```
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 hello-interval 1
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 dead-interval 4
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 hello-interval 1
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 dead-interval 4
+set protocols ospf area 0.0.0.0 interface lo0.0 passive
+set policy-options policy-statement ecmp term 1 then load-balance per-packet
+```
 
-На Leaf младший адрес<br />
-На Spine старший адрес<br />
+Команда `set policy-options policy-statement ecmp term 1 then load-balance per-packet` нужна для включения ECMP per-flow.
+
+[Understanding Per-Packet Load Balancing](https://www.juniper.net/documentation/us/en/software/junos/sampling-forwarding-monitoring/topics/concept/policy-per-packet-load-balancing-overview.html)

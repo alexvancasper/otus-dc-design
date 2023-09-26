@@ -12,3 +12,15 @@ delete interfaces xe-0/0/0 unit 0 family inet dhcp
 delete interfaces xe-0/0/1 unit 0 family inet dhcp
 delete interfaces xe-0/0/2 unit 0 family inet dhcp
 
+delete protocol ospf
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 hello-interval 1
+set protocols ospf area 0.0.0.0 interface xe-0/0/0.0 dead-interval 4
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 hello-interval 1
+set protocols ospf area 0.0.0.0 interface xe-0/0/1.0 dead-interval 4
+set protocols ospf area 0.0.0.0 interface xe-0/0/2.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface xe-0/0/2.0 hello-interval 1
+set protocols ospf area 0.0.0.0 interface xe-0/0/2.0 dead-interval 4
+set protocols ospf area 0.0.0.0 interface lo0.0 passive
+
