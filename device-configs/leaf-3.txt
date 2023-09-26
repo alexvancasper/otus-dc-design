@@ -11,15 +11,18 @@ delete interfaces xe-0/0/0 unit 0 family inet dhcp
 delete interfaces xe-0/0/1 unit 0 family inet dhcp
 
 delete protocol
-set interface xe-0/0/0 unit 0 family iso
-set interface xe-0/0/1 unit 0 family iso
-set interface lo0 unit 0 family iso address 49.0007.0102.5525.4003.00
-set protocols isis interface xe-0/0/0.0 point-to-point
-set protocols isis interface xe-0/0/0.0 level 1 disable
-set protocols isis interface xe-0/0/1.0 point-to-point
-set protocols isis interface xe-0/0/1.0 level 1 disable
-set protocols isis interface lo0.0 passive
-set protocols isis interface lo0.0 level 1 disable
-set protocols isis level 2 wide-metrics-only
-set policy-options policy-statement ecmp term 1 then load-balance per-packet
-set routing-options forwarding-table export ecmp
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY local-as 65513
+set protocols bgp group UNDERLAY neighbor 10.0.3.2 peer-as 65501
+set protocols bgp group UNDERLAY neighbor 10.0.3.6 peer-as 65502
+set protocols bgp group UNDERLAY hold-time 10
+set protocols bgp group UNDERLAY family inet unicast
+set protocols bgp group UNDERLAY multipath multiple-as
+
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 then accept
+set protocols bgp group UNDERLAY export BGP_LOOPBACK0
+
+set policy-options policy-statement PFE-ECMP then load-balance per-packet
+set routing-options forwarding-table export PFE-ECMP
