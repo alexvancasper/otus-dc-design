@@ -1,0 +1,12 @@
+set groups To-Spines interfaces <xe-*> mtu 9216
+set apply-groups To-Spines
+set system host-name leaf-2
+set system root-authentication encrypted-password "$6$To4wKwVn$0Azi91qxGPWPosdCgpxRLHpcWviVQd7jdToi5soxPYm1KUa34wJmlpXHc1XrGHrBe8.AJwkOUyf2V5rMZX1qq."
+set interfaces xe-0/0/0 unit 0 family inet address 10.0.2.1/30
+set interfaces xe-0/0/1 unit 0 family inet address 10.0.2.5/30
+set interfaces lo0 unit 0 family inet address 10.255.254.2/32 preferred
+set interfaces lo0 unit 0 family inet6 address fc00:254::2/128 preferred
+set routing-options router-id 10.255.254.2
+delete interfaces xe-0/0/0 unit 0 family inet dhcp
+delete interfaces xe-0/0/1 unit 0 family inet dhcp
+
