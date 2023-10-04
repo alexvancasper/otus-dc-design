@@ -13,8 +13,9 @@ delete interfaces xe-0/0/1 unit 0 family inet dhcp
 delete protocol
 set protocols bgp group UNDERLAY type external
 set protocols bgp group UNDERLAY local-as 65512
-set protocols bgp group UNDERLAY neighbor 10.0.2.2 peer-as 65501
-set protocols bgp group UNDERLAY neighbor 10.0.2.6 peer-as 65502
+set protocols bgp group UNDERLAY peer-as 65501
+set protocols bgp group UNDERLAY neighbor 10.0.2.2
+set protocols bgp group UNDERLAY neighbor 10.0.2.6
 set protocols bgp group UNDERLAY hold-time 10
 set protocols bgp group UNDERLAY family inet unicast
 set protocols bgp group UNDERLAY multipath multiple-as

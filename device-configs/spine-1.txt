@@ -22,10 +22,5 @@ set protocols bgp group UNDERLAY hold-time 10
 set protocols bgp group UNDERLAY family inet unicast
 set protocols bgp group UNDERLAY multipath multiple-as
 
-set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
-set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
-set policy-options policy-statement BGP_LOOPBACK0 term TERM1 then accept
-set protocols bgp group UNDERLAY export BGP_LOOPBACK0
-
 set policy-options policy-statement PFE-ECMP then load-balance per-packet
 set routing-options forwarding-table export PFE-ECMP
