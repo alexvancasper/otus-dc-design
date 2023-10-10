@@ -1,29 +1,32 @@
-set groups To-Spines interfaces <xe-*> mtu 9216
+set groups To-Spines interfaces <ge-*> mtu 9216
 set apply-groups To-Spines
 set system host-name leaf-2
-set system root-authentication encrypted-password "$6$To4wKwVn$0Azi91qxGPWPosdCgpxRLHpcWviVQd7jdToi5soxPYm1KUa34wJmlpXHc1XrGHrBe8.AJwkOUyf2V5rMZX1qq."
-set interfaces xe-0/0/0 unit 0 family inet address 10.0.2.1/30
-set interfaces xe-0/0/1 unit 0 family inet address 10.0.2.5/30
+set system root-authentication encrypted-password "$6$58bA.auo$Aqigi.2rlZyXTQHQcnXFZrryj7CncY8v6RaBavxeBRPoP0xBCywzNT.xSg3SSHuXnNdaYJgl9n1/cR0tZglkm1"
+set chassis fpc 0 pic 0 tunnel-services bandwidth 1g
+set interfaces ge-0/0/0 unit 0 family inet address 10.0.2.1/30
+set interfaces ge-0/0/1 unit 0 family inet address 10.0.2.5/30
+set interfaces ge-0/0/2 vlan-tagging
+set interfaces ge-0/0/2 encapsulation flexible-ethernet-services
+set interfaces ge-0/0/2 unit 0 encapsulation vlan-bridge
+set interfaces ge-0/0/2 unit 0 vlan-id 20
+set interfaces lo0 unit 0 family inet address 10.255.254.2/32 primary
 set interfaces lo0 unit 0 family inet address 10.255.254.2/32 preferred
-set interfaces lo0 unit 0 family inet6 address fc00:254::2/128 preferred
-set routing-options router-id 10.255.254.2
-delete interfaces xe-0/0/0 unit 0 family inet dhcp
-delete interfaces xe-0/0/1 unit 0 family inet dhcp
-
-delete protocol
-set protocols bgp group UNDERLAY type external
-set protocols bgp group UNDERLAY local-as 65512
-set protocols bgp group UNDERLAY peer-as 65501
-set protocols bgp group UNDERLAY neighbor 10.0.2.2
-set protocols bgp group UNDERLAY neighbor 10.0.2.6
-set protocols bgp group UNDERLAY hold-time 10
-set protocols bgp group UNDERLAY family inet unicast
-set protocols bgp group UNDERLAY multipath multiple-as
-
-set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
-set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
-set policy-options policy-statement BGP_LOOPBACK0 term TERM1 then accept
-set protocols bgp group UNDERLAY export BGP_LOOPBACK0
-
 set policy-options policy-statement PFE-ECMP then load-balance per-packet
 set routing-options forwarding-table export PFE-ECMP
+set routing-options router-id 10.255.254.2
+set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 hello-interval 10
+set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 dead-interval 30
+set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 interface-type p2p
+set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 hello-interval 10
+set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 dead-interval 30
+set protocols ospf area 0.0.0.0 interface lo0.0 passive
+set protocols pim rp static address 10.255.255.1
+set protocols pim interface ge-0/0/0.0 mode bidirectional-sparse
+set protocols pim interface ge-0/0/1.0 mode bidirectional-sparse
+set protocols pim interface lo0.0 mode bidirectional-sparse
+set bridge-domains VLAN_20 vlan-id 20
+set bridge-domains VLAN_20 interface ge-0/0/2.0
+set bridge-domains VLAN_20 vxlan vni 10020
+set bridge-domains VLAN_20 vxlan multicast-group 236.0.0.20
+set switch-options vtep-source-interface lo0.0
