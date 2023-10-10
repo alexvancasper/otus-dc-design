@@ -6,22 +6,35 @@ set chassis fpc 0 pic 0 tunnel-services bandwidth 1g
 set interfaces ge-0/0/0 unit 0 family inet address 10.0.1.2/30
 set interfaces ge-0/0/1 unit 0 family inet address 10.0.2.2/30
 set interfaces ge-0/0/2 unit 0 family inet address 10.0.3.2/30
+set interfaces lo0 unit 0 family inet address 10.255.255.1/32 primary
 set interfaces lo0 unit 0 family inet address 10.255.255.1/32 preferred
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 then accept
 set policy-options policy-statement PFE-ECMP then load-balance per-packet
-set routing-options forwarding-table export PFE-ECMP
 set routing-options router-id 10.255.255.1
-set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 interface-type p2p
-set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 hello-interval 10
-set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 dead-interval 30
-set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 interface-type p2p
-set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 hello-interval 10
-set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 dead-interval 30
-set protocols ospf area 0.0.0.0 interface ge-0/0/2.0 interface-type p2p
-set protocols ospf area 0.0.0.0 interface ge-0/0/2.0 hello-interval 10
-set protocols ospf area 0.0.0.0 interface ge-0/0/2.0 dead-interval 30
-set protocols ospf area 0.0.0.0 interface lo0.0 passive
-set protocols pim rp local address 10.255.255.1
-set protocols pim interface ge-0/0/0.0 mode bidirectional-sparse
-set protocols pim interface ge-0/0/1.0 mode bidirectional-sparse
-set protocols pim interface ge-0/0/2.0 mode bidirectional-sparse
-set protocols pim interface lo0.0 mode bidirectional-sparse
+set routing-options autonomous-system 4210000001
+set routing-options forwarding-table export PFE-ECMP
+set protocols bgp hold-time 10
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY family inet unicast
+set protocols bgp group UNDERLAY export BGP_LOOPBACK0
+set protocols bgp group UNDERLAY local-as 65501
+set protocols bgp group UNDERLAY multipath multiple-as
+set protocols bgp group UNDERLAY neighbor 10.0.1.1 peer-as 65511
+set protocols bgp group UNDERLAY neighbor 10.0.2.1 peer-as 65512
+set protocols bgp group UNDERLAY neighbor 10.0.3.1 peer-as 65513
+
+set protocols bgp group OVERLAY_RR_MESH type internal
+set protocols bgp group OVERLAY_RR_MESH local-address 10.255.255.1
+set protocols bgp group OVERLAY_RR_MESH family evpn signaling
+set protocols bgp group OVERLAY_RR_MESH neighbor 10.255.255.2
+
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-address 10.255.255.1
+set protocols bgp group OVERLAY family evpn signaling
+set protocols bgp group OVERLAY cluster 10.255.250.1
+set protocols bgp group OVERLAY multipath
+set protocols bgp group OVERLAY neighbor 10.255.254.1
+set protocols bgp group OVERLAY neighbor 10.255.254.2
+set protocols bgp group OVERLAY neighbor 10.255.254.3

@@ -1,7 +1,7 @@
 set groups To-Spines interfaces <ge-*> mtu 9216
 set apply-groups To-Spines
-set system host-name leaf-2
 set system root-authentication encrypted-password "$6$58bA.auo$Aqigi.2rlZyXTQHQcnXFZrryj7CncY8v6RaBavxeBRPoP0xBCywzNT.xSg3SSHuXnNdaYJgl9n1/cR0tZglkm1"
+set system host-name leaf-2
 set chassis fpc 0 pic 0 tunnel-services bandwidth 1g
 set interfaces ge-0/0/0 unit 0 family inet address 10.0.2.1/30
 set interfaces ge-0/0/1 unit 0 family inet address 10.0.2.5/30
@@ -11,22 +11,34 @@ set interfaces ge-0/0/2 unit 0 encapsulation vlan-bridge
 set interfaces ge-0/0/2 unit 0 vlan-id 20
 set interfaces lo0 unit 0 family inet address 10.255.254.2/32 primary
 set interfaces lo0 unit 0 family inet address 10.255.254.2/32 preferred
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 then accept
 set policy-options policy-statement PFE-ECMP then load-balance per-packet
-set routing-options forwarding-table export PFE-ECMP
+set routing-instances EVPN_20 protocols evpn encapsulation vxlan
+set routing-instances EVPN_20 vtep-source-interface lo0.0
+set routing-instances EVPN_20 instance-type evpn
+set routing-instances EVPN_20 vlan-id 20
+set routing-instances EVPN_20 vxlan vni 10020
+set routing-instances EVPN_20 interface ge-0/0/2.0
+set routing-instances EVPN_20 route-distinguisher 10.255.254.2:2
+set routing-instances EVPN_20 vrf-target target:1234:2
 set routing-options router-id 10.255.254.2
-set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 interface-type p2p
-set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 hello-interval 10
-set protocols ospf area 0.0.0.0 interface ge-0/0/0.0 dead-interval 30
-set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 interface-type p2p
-set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 hello-interval 10
-set protocols ospf area 0.0.0.0 interface ge-0/0/1.0 dead-interval 30
-set protocols ospf area 0.0.0.0 interface lo0.0 passive
-set protocols pim rp static address 10.255.255.1
-set protocols pim interface ge-0/0/0.0 mode bidirectional-sparse
-set protocols pim interface ge-0/0/1.0 mode bidirectional-sparse
-set protocols pim interface lo0.0 mode bidirectional-sparse
-set bridge-domains VLAN_20 vlan-id 20
-set bridge-domains VLAN_20 interface ge-0/0/2.0
-set bridge-domains VLAN_20 vxlan vni 10020
-set bridge-domains VLAN_20 vxlan multicast-group 236.0.0.20
-set switch-options vtep-source-interface lo0.0
+set routing-options forwarding-table export PFE-ECMP
+set routing-options autonomous-system 4210000001
+set protocols bgp hold-time 10
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY advertise-peer-as
+set protocols bgp group UNDERLAY family inet unicast
+set protocols bgp group UNDERLAY export BGP_LOOPBACK0
+set protocols bgp group UNDERLAY peer-as 65501
+set protocols bgp group UNDERLAY local-as 65512
+set protocols bgp group UNDERLAY multipath multiple-as
+set protocols bgp group UNDERLAY as-override
+set protocols bgp group UNDERLAY neighbor 10.0.2.2
+set protocols bgp group UNDERLAY neighbor 10.0.2.6
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-address 10.255.254.2
+set protocols bgp group OVERLAY family evpn signaling
+set protocols bgp group OVERLAY neighbor 10.255.255.1
+set protocols bgp group OVERLAY neighbor 10.255.255.2
