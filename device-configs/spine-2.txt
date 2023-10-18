@@ -1,11 +1,24 @@
+set version 22.1R1.10
 set groups To-Leafs interfaces <ge-*> mtu 9216
 set apply-groups To-Leafs
-set system root-authentication encrypted-password "$6$v8GPpRCo$X9cO8crI5rB3WyiCCjTOOa989VE0l8eeCVvrKB6vVNpmkmUfeX9ZDLFs7EVhIl9KKH37I5kSg5h1rD3Kw9Sts1"
 set system host-name spine-2
+set system root-authentication encrypted-password "$6$o48O8dqS$ADvWZ.202Fzk5s1YmRWFwOmUy8EIQyBGk7XV3OyFyi2pBQEpGVdqPZZGu3KrtIU7UwOPN/dFs9o0mhMBVx5ql."
+set system syslog file interactive-commands interactive-commands any
+set system syslog file messages any notice
+set system syslog file messages authorization info
+set system processes dhcp-service traceoptions file dhcp_logfile
+set system processes dhcp-service traceoptions file size 10m
+set system processes dhcp-service traceoptions level all
+set system processes dhcp-service traceoptions flag packet
 set chassis fpc 0 pic 0 tunnel-services bandwidth 1g
 set interfaces ge-0/0/0 unit 0 family inet address 10.0.1.6/30
 set interfaces ge-0/0/1 unit 0 family inet address 10.0.2.6/30
 set interfaces ge-0/0/2 unit 0 family inet address 10.0.3.6/30
+set interfaces fxp0 unit 0 family inet dhcp vendor-id Juniper-vmx-VM652E571E78
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-type stateful
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-ia-type ia-na
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-identifier duid-type duid-ll
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client vendor-id Juniper:vmx:VM652E571E78
 set interfaces lo0 unit 0 family inet address 10.255.255.2/32 primary
 set interfaces lo0 unit 0 family inet address 10.255.255.2/32 preferred
 set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
@@ -15,7 +28,7 @@ set policy-options policy-statement PFE-ECMP then load-balance per-packet
 set routing-options router-id 10.255.255.2
 set routing-options autonomous-system 4210000001
 set routing-options forwarding-table export PFE-ECMP
-set protocols bgp hold-time 10
+set protocols router-advertisement interface fxp0.0
 set protocols bgp group UNDERLAY type external
 set protocols bgp group UNDERLAY hold-time 10
 set protocols bgp group UNDERLAY family inet unicast
@@ -25,12 +38,10 @@ set protocols bgp group UNDERLAY multipath multiple-as
 set protocols bgp group UNDERLAY neighbor 10.0.1.5 peer-as 65511
 set protocols bgp group UNDERLAY neighbor 10.0.2.5 peer-as 65512
 set protocols bgp group UNDERLAY neighbor 10.0.3.5 peer-as 65513
-
 set protocols bgp group OVERLAY_RR_MESH type internal
 set protocols bgp group OVERLAY_RR_MESH local-address 10.255.255.2
 set protocols bgp group OVERLAY_RR_MESH family evpn signaling
 set protocols bgp group OVERLAY_RR_MESH neighbor 10.255.255.1
-
 set protocols bgp group OVERLAY type internal
 set protocols bgp group OVERLAY local-address 10.255.255.2
 set protocols bgp group OVERLAY family evpn signaling
@@ -39,3 +50,4 @@ set protocols bgp group OVERLAY multipath
 set protocols bgp group OVERLAY neighbor 10.255.254.1
 set protocols bgp group OVERLAY neighbor 10.255.254.2
 set protocols bgp group OVERLAY neighbor 10.255.254.3
+set protocols bgp hold-time 10
