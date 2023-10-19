@@ -8,12 +8,27 @@ set system processes dhcp-service traceoptions file dhcp_logfile
 set system processes dhcp-service traceoptions file size 10m
 set system processes dhcp-service traceoptions level all
 set system processes dhcp-service traceoptions flag packet
+set chassis aggregated-devices ethernet device-count 4
 set chassis fpc 0 pic 0 tunnel-services bandwidth 1g
+set interfaces ge-0/0/0 mtu 9216
 set interfaces ge-0/0/0 unit 0 family inet address 10.0.2.1/30
+set interfaces ge-0/0/1 mtu 9216
 set interfaces ge-0/0/1 unit 0 family inet address 10.0.2.5/30
 set interfaces ge-0/0/2 flexible-vlan-tagging
+set interfaces ge-0/0/2 mtu 9216
 set interfaces ge-0/0/2 encapsulation extended-vlan-bridge
 set interfaces ge-0/0/2 unit 20 vlan-id 20
+set interfaces ge-0/0/3 speed 100m
+set interfaces ge-0/0/3 link-mode full-duplex
+set interfaces ge-0/0/3 gigether-options 802.3ad ae1
+set interfaces ae1 flexible-vlan-tagging
+set interfaces ae1 mtu 9216
+set interfaces ae1 encapsulation extended-vlan-bridge
+set interfaces ae1 esi 00:aa:bb:cc:11:22:33:44:55:66
+set interfaces ae1 esi all-active
+set interfaces ae1 aggregated-ether-options lacp active
+set interfaces ae1 aggregated-ether-options lacp system-id 11:22:33:44:55:66
+set interfaces ae1 unit 30 vlan-id 30
 set interfaces fxp0 unit 0 family inet dhcp vendor-id Juniper-vmx-VM652E4F27D5
 set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-type stateful
 set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-ia-type ia-na
@@ -21,6 +36,8 @@ set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-identifier duid-typ
 set interfaces fxp0 unit 0 family inet6 dhcpv6-client vendor-id Juniper:vmx:VM652E4F27D5
 set interfaces irb unit 20 virtual-gateway-accept-data
 set interfaces irb unit 20 family inet address 172.17.0.100/24 virtual-gateway-address 172.17.0.254
+set interfaces irb unit 30 virtual-gateway-accept-data
+set interfaces irb unit 30 family inet address 192.168.0.200/24 virtual-gateway-address 192.168.0.254
 set interfaces lo0 unit 0 family inet address 10.255.254.2/32 primary
 set interfaces lo0 unit 0 family inet address 10.255.254.2/32 preferred
 set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
@@ -33,12 +50,22 @@ set policy-options policy-statement mac20-import term v10-orig from community v1
 set policy-options policy-statement mac20-import term v10-orig then accept
 set policy-options policy-statement mac20-import term v30-orig from community v30
 set policy-options policy-statement mac20-import term v30-orig then accept
+set policy-options policy-statement mac30-import term local-orig from community v30
+set policy-options policy-statement mac30-import term local-orig then accept
+set policy-options policy-statement mac30-import term v10-orig from community v10
+set policy-options policy-statement mac30-import term v10-orig then accept
+set policy-options policy-statement mac30-import term v20-orig from community v20
+set policy-options policy-statement mac30-import term v20-orig then accept
 set policy-options policy-statement v20_t5 from route-filter 172.17.0.0/24 exact
 set policy-options policy-statement v20_t5 then accept
 set policy-options policy-statement vrf20-import from community v20-vrf
 set policy-options policy-statement vrf20-import from community v10-vrf
 set policy-options policy-statement vrf20-import from community v30-vrf
 set policy-options policy-statement vrf20-import then accept
+set policy-options policy-statement vrf30-import from community v10-vrf
+set policy-options policy-statement vrf30-import from community v20-vrf
+set policy-options policy-statement vrf30-import from community v30-vrf
+set policy-options policy-statement vrf30-import then accept
 set policy-options community v10 members target:42011:10
 set policy-options community v10-vrf members target:42011:1010
 set policy-options community v20 members target:42011:20
@@ -64,6 +91,25 @@ set routing-instances v20-vrf route-distinguisher 10.255.254.2:200
 set routing-instances v20-vrf vrf-import vrf20-import
 set routing-instances v20-vrf vrf-target target:42011:2020
 set routing-instances v20-vrf vrf-table-label
+set routing-instances v30 instance-type mac-vrf
+set routing-instances v30 protocols evpn encapsulation vxlan
+set routing-instances v30 protocols evpn extended-vni-list 10030
+set routing-instances v30 vtep-source-interface lo0.0
+set routing-instances v30 bridge-domains v30 vlan-id 30
+set routing-instances v30 bridge-domains v30 interface ae1.30
+set routing-instances v30 bridge-domains v30 routing-interface irb.30
+set routing-instances v30 bridge-domains v30 vxlan vni 10030
+set routing-instances v30 service-type vlan-based
+set routing-instances v30 route-distinguisher 10.255.254.2:3
+set routing-instances v30 vrf-import mac30-import
+set routing-instances v30 vrf-target target:42011:30
+set routing-instances v30-vrf instance-type vrf
+set routing-instances v30-vrf routing-options auto-export
+set routing-instances v30-vrf protocols evpn irb-symmetric-routing vni 9930
+set routing-instances v30-vrf interface irb.30
+set routing-instances v30-vrf route-distinguisher 10.255.254.2:300
+set routing-instances v30-vrf vrf-import vrf30-import
+set routing-instances v30-vrf vrf-target target:42011:3030
 set routing-options router-id 10.255.254.2
 set routing-options autonomous-system 4210000001
 set routing-options forwarding-table export PFE-ECMP
@@ -81,6 +127,7 @@ set protocols bgp group UNDERLAY neighbor 10.0.2.6
 set protocols bgp group OVERLAY type internal
 set protocols bgp group OVERLAY local-address 10.255.254.2
 set protocols bgp group OVERLAY family evpn signaling
+set protocols bgp group OVERLAY multipath
 set protocols bgp group OVERLAY neighbor 10.255.255.1
 set protocols bgp group OVERLAY neighbor 10.255.255.2
 set protocols bgp group OVERLAY vpn-apply-export

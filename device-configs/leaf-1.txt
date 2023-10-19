@@ -10,15 +10,29 @@ set system processes dhcp-service traceoptions file dhcp_logfile
 set system processes dhcp-service traceoptions file size 10m
 set system processes dhcp-service traceoptions level all
 set system processes dhcp-service traceoptions flag packet
+set chassis aggregated-devices ethernet device-count 4
 set chassis fpc 0 pic 0 tunnel-services bandwidth 1g
+set interfaces ge-0/0/0 mtu 9216
 set interfaces ge-0/0/0 unit 0 family inet address 10.0.1.1/30
+set interfaces ge-0/0/1 mtu 9216
 set interfaces ge-0/0/1 unit 0 family inet address 10.0.1.5/30
 set interfaces ge-0/0/2 flexible-vlan-tagging
+set interfaces ge-0/0/2 mtu 9216
 set interfaces ge-0/0/2 encapsulation extended-vlan-bridge
 set interfaces ge-0/0/2 unit 10 vlan-id 10
-set interfaces ge-0/0/3 flexible-vlan-tagging
-set interfaces ge-0/0/3 encapsulation extended-vlan-bridge
-set interfaces ge-0/0/3 unit 30 vlan-id 30
+set interfaces ge-0/0/3 speed 100m
+set interfaces ge-0/0/3 link-mode full-duplex
+set interfaces ge-0/0/3 gigether-options 802.3ad ae1
+set interfaces ae1 flexible-vlan-tagging
+set interfaces ae1 mtu 9216
+set interfaces ae1 encapsulation extended-vlan-bridge
+set interfaces ae1 esi 00:aa:bb:cc:11:22:33:44:55:66
+set interfaces ae1 esi all-active
+set interfaces ae1 aggregated-ether-options link-speed 100m
+set interfaces ae1 aggregated-ether-options lacp active
+set interfaces ae1 aggregated-ether-options lacp periodic fast
+set interfaces ae1 aggregated-ether-options lacp system-id 11:22:33:44:55:66
+set interfaces ae1 unit 30 vlan-id 30
 set interfaces fxp0 unit 0 family inet dhcp vendor-id Juniper-vmx-VM652E4ED051
 set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-type stateful
 set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-ia-type ia-na
@@ -90,7 +104,7 @@ set routing-instances v30 protocols evpn encapsulation vxlan
 set routing-instances v30 protocols evpn extended-vni-list 10030
 set routing-instances v30 vtep-source-interface lo0.0
 set routing-instances v30 bridge-domains v30 vlan-id 30
-set routing-instances v30 bridge-domains v30 interface ge-0/0/3.30
+set routing-instances v30 bridge-domains v30 interface ae1.30
 set routing-instances v30 bridge-domains v30 routing-interface irb.30
 set routing-instances v30 bridge-domains v30 vxlan vni 10030
 set routing-instances v30 service-type vlan-based
@@ -122,6 +136,7 @@ set protocols bgp group UNDERLAY neighbor 10.0.1.6
 set protocols bgp group OVERLAY type internal
 set protocols bgp group OVERLAY local-address 10.255.254.1
 set protocols bgp group OVERLAY family evpn signaling
+set protocols bgp group OVERLAY multipath
 set protocols bgp group OVERLAY neighbor 10.255.255.1
 set protocols bgp group OVERLAY neighbor 10.255.255.2
 set protocols bgp group OVERLAY vpn-apply-export
