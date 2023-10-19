@@ -363,10 +363,11 @@ Instance: v30
 
 ```
 
-Useful links
-[EVPN Multihoming Overview](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-bgp-multihoming-overview.html)  
-[Isolation node tracking](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-core-isolation-interface-shutdown-service-tracking.html)  
-[Cases of Isolation](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-vxlan-core-isolation-disabling.html)  
-[Multihoming an Ethernet-Connected End System Design and Implementation](https://www.juniper.net/documentation/us/en/software/nce/sg-005-data-center-fabric/topics/task/l2-multihoming-cloud-dc-configuring.html)  
-[Data Center Fabric Blueprint Architecture Components](https://www.juniper.net/documentation/us/en/software/nce/sg-005-data-center-fabric/topics/concept/solution-cloud-data-center-components.html#data-center-fabric-blueprint-architecture-components__multihoming-l2-overview)  
-[RFC-8365](https://www.rfc-editor.org/rfc/rfc8365.html#section-8.1)
+Useful links:
+
+- [EVPN Multihoming Overview](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-bgp-multihoming-overview.html)  
+- [Isolation node tracking](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-core-isolation-interface-shutdown-service-tracking.html)  
+- [Cases of Isolation](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-vxlan-core-isolation-disabling.html)  
+- [Multihoming an Ethernet-Connected End System Design and Implementation](https://www.juniper.net/documentation/us/en/software/nce/sg-005-data-center-fabric/topics/task/l2-multihoming-cloud-dc-configuring.html)  
+- [Data Center Fabric Blueprint Architecture Components](https://www.juniper.net/documentation/us/en/software/nce/sg-005-data-center-fabric/topics/concept/solution-cloud-data-center-components.html#data-center-fabric-blueprint-architecture-components__multihoming-l2-overview)  
+- [RFC-8365](https://www.rfc-editor.org/rfc/rfc8365.html#section-8.1)
