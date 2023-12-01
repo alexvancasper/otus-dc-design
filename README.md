@@ -1,9 +1,9 @@
 
-# Лабораторная работа по теме "ESI LAG"
+# Лабораторная работа по теме "Оптимизация таблиц маршрутизации"
 
 ### Цель:
-- Рассмотреть возможности подключения multihoming клиентов.
-
+- разобрать EVPN route-type 5 и его применение;
+- настройка route-type для оптимизации маршрутизации.
 
 ### Топология
 
@@ -11,31 +11,66 @@
 
 ## Реализация
 
-Underlay маршрутизации на основе eBGP.  
-Overlay на основе iBGP все spine и leaf в одной AS 4210000001.  
-  
-vEOS выполняет роль MultiHome клиента который одновременно включен в Leaf-1 и Leaf-2.  
-На vEOS оба порта объединины в LAG с LACP active.  
-На Leaf-1, Leaf-2 собираем aggregate interface с одним физическим портом и указываем одинаковый system-id.
+Топология и настройки всех узлов сохранены с прошлой работы ESI LAG.
+Цель EVPN Type-5 обеспечение связности между дата-центрами, подами.
+Идея маршрута в том, что в отличии от Type-2 анонс Type-5 отделяется от MAC адреса 
+и анонсируется только L3 префикс, который в дальнейшем может использовать и обычном l3-vrf.
 
-Пример конфигурации для Leaf-1
+Пример конфигурации EVPN Type-5 для v10-vrf, v20-vrf, v30-vrf
 ```
-set chassis aggregated-devices ethernet device-count 4 
-set interfaces ge-0/0/3 gigether-options 802.3ad ae0
-set interfaces ae1 flexible-vlan-tagging             
-set interfaces ae1 mtu 9216  
-set interfaces ae1 encapsulation extended-vlan-bridge
-set interfaces ae1 esi 00:aa:bb:cc:11:22:33:44:55:66 
-set interfaces ae1 esi all-active 
-set interfaces ae1 aggregated-ether-options lacp active   
-set interfaces ae1 aggregated-ether-options lacp system-id 11:22:33:44:55:66 
-set interfaces ae1 unit 30 vlan-id 30                
+set routing-instances v10-vrf protocols evpn ip-prefix-routes advertise direct-nexthop
+set routing-instances v10-vrf protocols evpn ip-prefix-routes encapsulation vxlan
+set routing-instances v10-vrf protocols evpn ip-prefix-routes vni 9910
+
+set routing-instances v20-vrf protocols evpn ip-prefix-routes advertise direct-nexthop
+set routing-instances v20-vrf protocols evpn ip-prefix-routes encapsulation vxlan
+set routing-instances v20-vrf protocols evpn ip-prefix-routes vni 9920
+
+set routing-instances v30-vrf protocols evpn ip-prefix-routes advertise direct-nexthop
+set routing-instances v30-vrf protocols evpn ip-prefix-routes encapsulation vxlan
+set routing-instances v30-vrf protocols evpn ip-prefix-routes vni 9930
 
 ```
-`all-active` - говорит о том, что оба пира будут работать в режиме Active-Active
+После добавления конфигурации выше, в сети появляются новые маршруты EVPN Type-5
 
-Далее добавляем интерфейс ae1 в routing-instance v30.
-Аналогичная конфигурация для Leaf-2, но нужно добавить и сам `mac-vrf` и `vrf`.
+```
+2:10.255.254.1:1::0::2c:6b:f5:18:6f:f0::10.5.5.100/304 MAC/IP (1 entry, 0 announced)
+        *EVPN   Preference: 170
+                Next hop type: Indirect, Next hop index: 0
+                Address: 0x89fc7ac
+                Next-hop reference count: 33, key opaque handle: 0x0
+                Protocol next hop: 10.255.254.1
+                Indirect next hop: 0x0 - INH Session ID: 0
+                State: <Secondary Active Int Ext>
+                Age: 23:43
+                Validation State: unverified
+                Task: v10-evpn
+                AS path: I
+                Communities: target:42011:10 target:42011:1010 encapsulation:vxlan(0x8) evpn-default-gateway router-mac:2c:6b:f5:18:6f:f0
+                Route Label: 10010
+                Route Label: 9910
+                ESI: 00:00:00:00:00:00:00:00:00:00
+                Primary Routing Table: v10.evpn.0
+                Thread: junos-main
+
+5:10.255.254.1:100::0::10.5.5.0::24/248 (1 entry, 0 announced)
+        *EVPN   Preference: 170
+                Next hop type: Fictitious, Next hop index: 0
+                Address: 0x89fc5fc
+                Next-hop reference count: 12, key opaque handle: 0x0
+                Next hop:
+                State: <Secondary Active Int Ext>
+                Age: 23:43
+                Validation State: unverified
+                Task: v10-vrf-EVPN-L3-context
+                AS path: I
+                Communities: target:42011:1010 encapsulation:vxlan(0x8) router-mac:2c:6b:f5:18:6f:f0
+                Route Label: 9910
+                Overlay gateway address: 0.0.0.0
+                ESI 00:00:00:00:00:00:00:00:00:00
+                Primary Routing Table: v10-vrf.evpn.0
+                Thread: junos-main
+```
 
 ## Связность
 
@@ -72,302 +107,10 @@ rtt min/avg/max/mdev = 16.578/16.578/16.578/0.000 ms
 Server-MH#
 ```
 
-# Таблица маршрутизации устройств
-
-### leaf-3
-```
-root@leaf-3> show mac-vrf routing instance v10 esi 00:aa:bb:cc:11:22:33:44:55:66 esi-info
-Instance: v10            
-  Number of ethernet segments: 4                 
-    ESI: 00:aa:bb:cc:11:22:33:44:55:66           
-      Status: Resolved   
-      Number of remote PEs connected: 2          
-        Remote-PE        MAC-label  Aliasing-label  Mode                 
-        10.255.254.2     10030      10030           all-active           
-        10.255.254.1     10030      10030           all-active           
- 
-```
-
-Детальный вывод маршрута c leaf-1.
-```
-root@leaf-1> show route evpn-mac-address 50:00:00:ae:f7:03 detail table v30  
-     
-v30-vrf.inet.0: 15 destinations, 30 routes (15 active, 0 holddown, 0 hidden) 
-     
-v30-vrf.inet6.0: 1 destinations, 1 routes (1 active, 0 holddown, 0 hidden)   
-     
-v30.evpn.0: 42 destinations, 76 routes (42 active, 0 holddown, 0 hidden)     
-2:10.255.254.1:3::0::50:00:00:ae:f7:03/304 MAC/IP (1 entry, 1 announced)     
-        *EVPN   Preference: 170   
-                Next hop type: Indirect, Next hop index: 0
-                Address: 0x89fcc50
-                Next-hop reference count: 41, key opaque handle: 0x0         
-                Protocol next hop: 10.255.254.1      
-                Indirect next hop: 0x0 - INH Session ID: 0
-                State: <Active Int Ext>              
-                Age: 19:39   
-                Validation State: unverified         
-                Task: v30-evpn    
-                Announcement bits (1): 2-rt-export   
-                AS path: I   
-                Communities: encapsulation:vxlan(0x8)
-                Route Label: 10030
-                ESI: 00:aa:bb:cc:11:22:33:44:55:66   
-                Thread: junos-main
-2:10.255.254.2:3::0::50:00:00:ae:f7:03/304 MAC/IP (2 entries, 1 announced)
-        *BGP    Preference: 170/-101              
-                Route Distinguisher: 10.255.254.2:3    
-                Next hop type: Indirect, Next hop index: 0                
-                Address: 0x89fdb14                
-                Next-hop reference count: 112, key opaque handle: 0x0     
-                Source: 10.255.255.1              
-                Protocol next hop: 10.255.254.2   
-                Indirect next hop: 0x2 no-forward INH Session ID: 0       
-                State: <Secondary Active Int Ext> 
-                Local AS: 4210000001 Peer AS: 4210000001                  
-                Age: 19:49      Metric2: 0        
-                Validation State: unverified      
-                Task: BGP_4210000001.10.255.255.1 
-                Announcement bits (1): 0-v30-evpn 
-                AS path: I  (Originator)          
-                Cluster list:  10.255.250.1       
-                Originator ID: 10.255.254.2       
-                Communities: target:42011:30 encapsulation:vxlan(0x8)     
-                Import Accepted
-                Route Label: 10030                
-                ESI: 00:aa:bb:cc:11:22:33:44:55:66
-                Localpref: 100 
-                Router ID: 10.255.255.1           
-                Primary Routing Table: bgp.evpn.0 
-                Thread: junos-main                
-         BGP    Preference: 170/-101              
-                Route Distinguisher: 10.255.254.2:3    
-                Next hop type: Indirect, Next hop index: 0                
-                Address: 0x89fdb14                
-                Next-hop reference count: 112, key opaque handle: 0x0     
-                Source: 10.255.255.2              
-                Protocol next hop: 10.255.254.2   
-                Indirect next hop: 0x2 no-forward INH Session ID: 0       
-                State: <Secondary NotBest Int Ext Changed>                
-                Inactive reason: Not Best in its group - Update source    
-                Local AS: 4210000001 Peer AS: 4210000001                  
-                Age: 4:19       Metric2: 0        
-                Validation State: unverified      
-                Task: BGP_4210000001.10.255.255.2 
-                AS path: I  (Originator)          
-                Cluster list:  10.255.250.1       
-                Originator ID: 10.255.254.2       
-                Communities: target:42011:30 encapsulation:vxlan(0x8)     
-                Import Accepted
-                Route Label: 10030                
-                ESI: 00:aa:bb:cc:11:22:33:44:55:66
-                Localpref: 100 
-                Router ID: 10.255.255.2           
-                Primary Routing Table: bgp.evpn.0 
-                Thread: junos-main                
-2:10.255.254.1:3::0::50:00:00:ae:f7:03::192.168.0.3/304 MAC/IP (1 entry, 1 announced)               
-        *EVPN   Preference: 170  
-                Next hop type: Indirect, Next hop index: 0                  
-                Address: 0x89fcc50                  
-                Next-hop reference count: 41, key opaque handle: 0x0        
-                Protocol next hop: 10.255.254.1     
-                Indirect next hop: 0x0 - INH Session ID: 0                  
-                State: <Active Int Ext>             
-                Age: 19:33  
-                Validation State: unverified        
-                Task: v30-evpn   
-                Announcement bits (1): 2-rt-export  
-                AS path: I  
-                Communities: target:42011:3030 encapsulation:vxlan(0x8) router-mac:2c:6b:f5:18:6f:f0
-                Route Label: 10030                  
-                Route Label: 9930
-                ESI: 00:aa:bb:cc:11:22:33:44:55:66  
-                Thread: junos-main                  
-2:10.255.254.2:3::0::50:00:00:ae:f7:03::192.168.0.3/304 MAC/IP (2 entries, 1 announced)     
-        *BGP    Preference: 170/-101        
-                Route Distinguisher: 10.255.254.2:3                 
-                Next hop type: Indirect, Next hop index: 0          
-                Address: 0x89fdb14          
-                Next-hop reference count: 112, key opaque handle: 0x0    
-                Source: 10.255.255.1        
-                Protocol next hop: 10.255.254.2  
-                Indirect next hop: 0x2 no-forward INH Session ID: 0 
-                State: <Secondary Active Int Ext>
-                Local AS: 4210000001 Peer AS: 4210000001            
-                Age: 19:49      Metric2: 0  
-                Validation State: unverified
-                Task: BGP_4210000001.10.255.255.1
-                Announcement bits (1): 0-v30-evpn
-                AS path: I  (Originator)    
-                Cluster list:  10.255.250.1 
-                Originator ID: 10.255.254.2 
-                Communities: target:42011:30 target:42011:3030 encapsulation:vxlan(0x8) router-mac:2c:6b:f5:6d:31:f0
-                Import Accepted
-                Route Label: 10030          
-                Route Label: 9930           
-                ESI: 00:aa:bb:cc:11:22:33:44:55:66                  
-                Localpref: 100 
-                Router ID: 10.255.255.1     
-                Primary Routing Table: bgp.evpn.0
-                Thread: junos-main          
-         BGP    Preference: 170/-101        
-                Route Distinguisher: 10.255.254.2:3                 
-                Next hop type: Indirect, Next hop index: 0          
-                Address: 0x89fdb14          
-                Next-hop reference count: 112, key opaque handle: 0x0    
-                Source: 10.255.255.2        
-                Protocol next hop: 10.255.254.2  
-                Indirect next hop: 0x2 no-forward INH Session ID: 0 
-                State: <Secondary NotBest Int Ext Changed>          
-                Inactive reason: Not Best in its group - Update source   
-                Local AS: 4210000001 Peer AS: 4210000001            
-                Age: 4:19       Metric2: 0  
-                Validation State: unverified
-                Task: BGP_4210000001.10.255.255.2
-                AS path: I  (Originator)    
-                Cluster list:  10.255.250.1 
-                Originator ID: 10.255.254.2 
-                Communities: target:42011:30 target:42011:3030 encapsulation:vxlan(0x8) router-mac:2c:6b:f5:6d:31:f0
-                Import Accepted
-                Route Label: 10030          
-                Route Label: 9930           
-                ESI: 00:aa:bb:cc:11:22:33:44:55:66                  
-                Localpref: 100 
-                Router ID: 10.255.255.2     
-                Primary Routing Table: bgp.evpn.0
-                Thread: junos-main
-```
-
-### Детальное описание ESI с каждого пира
-
-Leaf-1
-```
-root@leaf-1> show evpn instance v30 extensive                                                    
-Instance: v30                                                                                    
-  Route Distinguisher: 10.255.254.1:3                                                            
-  VLAN ID: 30                                                                                    
-  Encapsulation type: VXLAN                                                                      
-  Control word enabled                                                                           
-  Duplicate MAC detection threshold: 5                                                           
-  Duplicate MAC detection window: 180                                                            
-  MAC database status                     Local  Remote                                          
-    MAC advertisements:                       2      12                                          
-    MAC+IP advertisements:                    3      11                                          
-    Default gateway MAC advertisements:       2       4                                          
-  Number of local interfaces: 2 (2 up)                                                           
-    Interface name  ESI                            Mode             Status     AC-Role           
-    .local..15      00:00:00:00:00:00:00:00:00:00  single-homed     Up         Root              
-    ae1.30          00:aa:bb:cc:11:22:33:44:55:66  all-active       Up         Root              
-  Number of IRB interfaces: 1 (1 up)                                                             
-    Interface name  VLAN   VNI    Status  L3 context                                             
-    irb.30                 10030   Up     v30-vrf                                                
-  Number of protect interfaces: 0                                                                
-  Number of bridge domains: 1                                                                    
-    VLAN  Domain-ID Intfs/up   IRB-intf  Mode            MAC-sync v4-SG-sync v6-SG-sync          
-    30    10030        1  1    irb.30    Extended        Enabled  Disabled   Disabled            
-  Number of neighbors: 2                                                                         
-    Address               MAC    MAC+IP        AD        IM        ES Leaf-label Remote-DCI-Peer 
-    10.255.254.2            6         6         4         2         0                            
-    10.255.254.3            6         6         2         2         0                            
-  Number of ethernet segments: 4                                                                 
-    ESI: 00:aa:bb:cc:11:22:33:44:55:66                                                           
-      Status: Resolved by IFL ae1.30                                                             
-      Local interface: ae1.30, Status: Up/Forwarding                                             
-      Number of remote PEs connected: 1                                                          
-        Remote-PE        MAC-label  Aliasing-label  Mode                                         
-        10.255.254.2     10030      10030           all-active                                   
-      DF Election Algorithm: MOD based                                                           
-      Designated forwarder: 10.255.254.1                                                         
-      Backup forwarder: 10.255.254.2                                                             
-      Last designated forwarder update: Oct 19 12:19:40                                          
-    ESI: 05:fa:ef:80:81:00:00:27:1a:00                                                           
-      Status: Resolved                                                                           
-      Number of remote PEs connected: 1                                                          
-        Remote-PE        MAC-label  Aliasing-label  Mode                                         
-        10.255.254.3     10010      0               all-active                                   
-    ESI: 05:fa:ef:80:81:00:00:27:24:00                                                           
-      Status: Resolved                                                                           
-      Number of remote PEs connected: 2                                                          
-        Remote-PE        MAC-label  Aliasing-label  Mode                                         
-        10.255.254.2     10020      0               all-active                                   
-        10.255.254.3     10020      0               all-active                                   
-    ESI: 05:fa:ef:80:81:00:00:27:2e:00                                                           
-      Local interface: irb.30, Status: Up/Forwarding                                             
-      Number of remote PEs connected: 1                                                          
-        Remote-PE        MAC-label  Aliasing-label  Mode                                         
-        10.255.254.2     10030      0               all-active                                   
-  Router-ID: 10.255.254.1                                                                        
-  Source VTEP interface IP: 10.255.254.1                                                         
-  SMET Forwarding: Disabled                                                                      
-```
-
-Leaf-2
-```
-root@leaf-2> show evpn instance v30 extensive
-Instance: v30
-  Route Distinguisher: 10.255.254.2:3
-  VLAN ID: 30
-  Encapsulation type: VXLAN
-  Control word enabled
-  Duplicate MAC detection threshold: 5
-  Duplicate MAC detection window: 180
-  MAC database status                     Local  Remote
-    MAC advertisements:                       2      12
-    MAC+IP advertisements:                    3      11
-    Default gateway MAC advertisements:       2       4
-  Number of local interfaces: 2 (2 up)
-    Interface name  ESI                            Mode             Status     AC-Role
-    .local..11      00:00:00:00:00:00:00:00:00:00  single-homed     Up         Root
-    ae1.30          00:aa:bb:cc:11:22:33:44:55:66  all-active       Up         Root
-  Number of IRB interfaces: 1 (1 up)
-    Interface name  VLAN   VNI    Status  L3 context
-    irb.30                 10030   Up     v30-vrf
-  Number of protect interfaces: 0
-  Number of bridge domains: 1
-    VLAN  Domain-ID Intfs/up   IRB-intf  Mode            MAC-sync v4-SG-sync v6-SG-sync
-    30    10030        1  1    irb.30    Extended        Enabled  Disabled   Disabled
-  Number of neighbors: 2
-    Address               MAC    MAC+IP        AD        IM        ES Leaf-label Remote-DCI-Peer
-    10.255.254.1            6         6         4         2         0
-    10.255.254.3            6         6         2         2         0
-  Number of ethernet segments: 4
-    ESI: 00:aa:bb:cc:11:22:33:44:55:66
-      Status: Resolved by IFL ae1.30
-      Local interface: ae1.30, Status: Up/Forwarding
-      Number of remote PEs connected: 1
-        Remote-PE        MAC-label  Aliasing-label  Mode
-        10.255.254.1     10030      10030           all-active
-      DF Election Algorithm: MOD based
-      Designated forwarder: 10.255.254.1
-      Backup forwarder: 10.255.254.2
-      Last designated forwarder update: Oct 19 12:19:46
-    ESI: 05:fa:ef:80:81:00:00:27:1a:00
-      Status: Resolved
-      Number of remote PEs connected: 2
-        Remote-PE        MAC-label  Aliasing-label  Mode
-        10.255.254.3     10010      0               all-active
-        10.255.254.1     10010      0               all-active
-    ESI: 05:fa:ef:80:81:00:00:27:24:00
-      Status: Resolved
-      Number of remote PEs connected: 1
-        Remote-PE        MAC-label  Aliasing-label  Mode
-        10.255.254.3     10020      0               all-active
-    ESI: 05:fa:ef:80:81:00:00:27:2e:00
-      Local interface: irb.30, Status: Up/Forwarding
-      Number of remote PEs connected: 1
-        Remote-PE        MAC-label  Aliasing-label  Mode
-        10.255.254.1     10030      0               all-active
-  Router-ID: 10.255.254.2
-  Source VTEP interface IP: 10.255.254.2
-  SMET Forwarding: Disabled
-
-```
 
 Useful links:
-
-- [EVPN Multihoming Overview](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-bgp-multihoming-overview.html)  
-- [Isolation node tracking](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-core-isolation-interface-shutdown-service-tracking.html)  
-- [Cases of Isolation](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-vxlan-core-isolation-disabling.html)  
-- [Multihoming an Ethernet-Connected End System Design and Implementation](https://www.juniper.net/documentation/us/en/software/nce/sg-005-data-center-fabric/topics/task/l2-multihoming-cloud-dc-configuring.html)  
-- [Data Center Fabric Blueprint Architecture Components](https://www.juniper.net/documentation/us/en/software/nce/sg-005-data-center-fabric/topics/concept/solution-cloud-data-center-components.html#data-center-fabric-blueprint-architecture-components__multihoming-l2-overview)  
-- [RFC-8365](https://www.rfc-editor.org/rfc/rfc8365.html#section-8.1)
+- [Understanding EVPN Pure Type 5 Routes](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-route-type5-understanding.html)
+- [EVPN Type-5](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-vxlan-encapsulation.html)  
+- [EVPN Type 2 and Type 5 Route Coexistence](https://www.juniper.net/documentation/us/en/software/junos/evpn-vxlan/topics/concept/evpn-t2-t5-coexist-evpn-vxlan.html)
+- [EVPN Type 5 Routing over VXLAN Tunnels](https://www.juniper.net/documentation/us/en/software/cloud-native-router23.3/cloud-native-router-user/topics/concept/l3-evpn-type5-routing-over-vxlan-tunnels.html)
+- [EVPN Type-5 MPLS](https://bgphelp.com/2017/04/23/evpn-type-5-configuration-example-juniper-mx/)  

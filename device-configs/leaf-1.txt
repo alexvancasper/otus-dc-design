@@ -94,6 +94,9 @@ set routing-instances v10 vrf-target target:42011:10
 set routing-instances v10-vrf instance-type vrf
 set routing-instances v10-vrf routing-options auto-export
 set routing-instances v10-vrf protocols evpn irb-symmetric-routing vni 9910
+set routing-instances v10-vrf protocols evpn ip-prefix-routes advertise direct-nexthop
+set routing-instances v10-vrf protocols evpn ip-prefix-routes encapsulation vxlan
+set routing-instances v10-vrf protocols evpn ip-prefix-routes vni 9910
 set routing-instances v10-vrf interface irb.10
 set routing-instances v10-vrf route-distinguisher 10.255.254.1:100
 set routing-instances v10-vrf vrf-import vrf10-import
@@ -114,6 +117,9 @@ set routing-instances v30 vrf-target target:42011:30
 set routing-instances v30-vrf instance-type vrf
 set routing-instances v30-vrf routing-options auto-export
 set routing-instances v30-vrf protocols evpn irb-symmetric-routing vni 9930
+set routing-instances v30-vrf protocols evpn ip-prefix-routes advertise direct-nexthop
+set routing-instances v30-vrf protocols evpn ip-prefix-routes encapsulation vxlan
+set routing-instances v30-vrf protocols evpn ip-prefix-routes vni 9930
 set routing-instances v30-vrf interface irb.30
 set routing-instances v30-vrf route-distinguisher 10.255.254.1:300
 set routing-instances v30-vrf vrf-import vrf30-import
