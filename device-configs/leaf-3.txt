@@ -1,11 +1,127 @@
-set groups To-Spines interfaces <xe-*> mtu 9216
+set version 22.1R1.10
+set groups To-Spines interfaces <ge-*> mtu 9216
 set apply-groups To-Spines
 set system host-name leaf-3
-set system root-authentication encrypted-password "$6$To4wKwVn$0Azi91qxGPWPosdCgpxRLHpcWviVQd7jdToi5soxPYm1KUa34wJmlpXHc1XrGHrBe8.AJwkOUyf2V5rMZX1qq."
-set interfaces xe-0/0/0 unit 0 family inet address 10.0.3.1/30
-set interfaces xe-0/0/1 unit 0 family inet address 10.0.3.5/30
+set system root-authentication encrypted-password "$6$/EhOXOAU$lGSK3Sn91MoE82hlV/Pqe/Z/TI/pZQOpxQupL.Zm72bVQni8erj3dCulpwAO6e4Y9KkGY.K4KxO9YgojCIQCO0"
+set system syslog file interactive-commands interactive-commands any
+set system syslog file messages any notice
+set system syslog file messages authorization info
+set system processes dhcp-service traceoptions file dhcp_logfile
+set system processes dhcp-service traceoptions file size 10m
+set system processes dhcp-service traceoptions level all
+set system processes dhcp-service traceoptions flag packet
+set chassis fpc 0 pic 0 tunnel-services bandwidth 1g
+set interfaces ge-0/0/0 unit 0 family inet address 10.0.3.1/30
+set interfaces ge-0/0/1 unit 0 family inet address 10.0.3.5/30
+set interfaces ge-0/0/2 flexible-vlan-tagging
+set interfaces ge-0/0/2 encapsulation extended-vlan-bridge
+set interfaces ge-0/0/2 unit 10 vlan-id 10
+set interfaces ge-0/0/3 flexible-vlan-tagging
+set interfaces ge-0/0/3 encapsulation extended-vlan-bridge
+set interfaces ge-0/0/3 unit 20 vlan-id 20
+set interfaces fxp0 unit 0 family inet dhcp vendor-id Juniper-vmx-VM652E8FDE88
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-type stateful
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-ia-type ia-na
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client client-identifier duid-type duid-ll
+set interfaces fxp0 unit 0 family inet6 dhcpv6-client vendor-id Juniper:vmx:VM652E8FDE88
+set interfaces irb unit 10 virtual-gateway-accept-data
+set interfaces irb unit 10 family inet address 10.5.5.200/24 virtual-gateway-address 10.5.5.254
+set interfaces irb unit 20 virtual-gateway-accept-data
+set interfaces irb unit 20 family inet address 172.17.0.200/24 virtual-gateway-address 172.17.0.254
+set interfaces lo0 unit 0 family inet address 10.255.254.3/32 primary
 set interfaces lo0 unit 0 family inet address 10.255.254.3/32 preferred
-set interfaces lo0 unit 0 family inet6 address fc00:254::3/128 preferred
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from protocol direct
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 from route-filter 0.0.0.0/0 prefix-length-range /32-/32
+set policy-options policy-statement BGP_LOOPBACK0 term TERM1 then accept
+set policy-options policy-statement PFE-ECMP then load-balance per-packet
+set policy-options policy-statement mac10-import term local-orig from community v10
+set policy-options policy-statement mac10-import term local-orig then accept
+set policy-options policy-statement mac10-import term v20-orig from community v20
+set policy-options policy-statement mac10-import term v20-orig then accept
+set policy-options policy-statement mac10-import term v30-orig from community v30
+set policy-options policy-statement mac10-import term v30-orig then accept
+set policy-options policy-statement mac20-import term local-orig from community v20
+set policy-options policy-statement mac20-import term local-orig then accept
+set policy-options policy-statement mac20-import term v10-orig from community v10
+set policy-options policy-statement mac20-import term v10-orig then accept
+set policy-options policy-statement mac20-import term v30-orig from community v30
+set policy-options policy-statement mac20-import term v30-orig then accept
+set policy-options policy-statement v10_t5 from route-filter 10.5.5.0/24 exact
+set policy-options policy-statement v10_t5 then accept
+set policy-options policy-statement v20_t5 from route-filter 172.17.0.0/24 exact
+set policy-options policy-statement v20_t5 then accept
+set policy-options policy-statement vrf10-import from community v10-vrf
+set policy-options policy-statement vrf10-import from community v20-vrf
+set policy-options policy-statement vrf10-import from community v30-vrf
+set policy-options policy-statement vrf10-import then accept
+set policy-options policy-statement vrf20-import from community v10-vrf
+set policy-options policy-statement vrf20-import from community v20-vrf
+set policy-options policy-statement vrf20-import from community v30-vrf
+set policy-options policy-statement vrf20-import then accept
+set policy-options community v10 members target:42011:10
+set policy-options community v10-vrf members target:42011:1010
+set policy-options community v20 members target:42011:20
+set policy-options community v20-vrf members target:42011:2020
+set policy-options community v30 members target:42011:30
+set policy-options community v30-vrf members target:42011:3030
+set routing-instances v10 instance-type mac-vrf
+set routing-instances v10 protocols evpn encapsulation vxlan
+set routing-instances v10 protocols evpn extended-vni-list 10010
+set routing-instances v10 vtep-source-interface lo0.0
+set routing-instances v10 bridge-domains v10 vlan-id 10
+set routing-instances v10 bridge-domains v10 interface ge-0/0/2.10
+set routing-instances v10 bridge-domains v10 routing-interface irb.10
+set routing-instances v10 bridge-domains v10 vxlan vni 10010
+set routing-instances v10 service-type vlan-based
+set routing-instances v10 route-distinguisher 10.255.254.3:1
+set routing-instances v10 vrf-import mac10-import
+set routing-instances v10 vrf-target target:42011:10
+set routing-instances v10-vrf instance-type vrf
+set routing-instances v10-vrf routing-options auto-export
+set routing-instances v10-vrf protocols evpn irb-symmetric-routing vni 9910
+set routing-instances v10-vrf interface irb.10
+set routing-instances v10-vrf route-distinguisher 10.255.254.3:100
+set routing-instances v10-vrf vrf-import vrf10-import
+set routing-instances v10-vrf vrf-target target:42011:1010
+set routing-instances v10-vrf vrf-table-label
+set routing-instances v20 instance-type mac-vrf
+set routing-instances v20 protocols evpn encapsulation vxlan
+set routing-instances v20 protocols evpn extended-vni-list 10020
+set routing-instances v20 vtep-source-interface lo0.0
+set routing-instances v20 bridge-domains v20 vlan-id 20
+set routing-instances v20 bridge-domains v20 interface ge-0/0/3.20
+set routing-instances v20 bridge-domains v20 routing-interface irb.20
+set routing-instances v20 bridge-domains v20 vxlan vni 10020
+set routing-instances v20 service-type vlan-based
+set routing-instances v20 route-distinguisher 10.255.254.3:2
+set routing-instances v20 vrf-import mac20-import
+set routing-instances v20 vrf-target target:42011:20
+set routing-instances v20-vrf instance-type vrf
+set routing-instances v20-vrf routing-options auto-export
+set routing-instances v20-vrf protocols evpn irb-symmetric-routing vni 9920
+set routing-instances v20-vrf interface irb.20
+set routing-instances v20-vrf route-distinguisher 10.255.254.3:200
+set routing-instances v20-vrf vrf-import vrf20-import
+set routing-instances v20-vrf vrf-target target:42011:2020
+set routing-instances v20-vrf vrf-table-label
 set routing-options router-id 10.255.254.3
-delete interfaces xe-0/0/0 unit 0 family inet dhcp
-delete interfaces xe-0/0/1 unit 0 family inet dhcp
+set routing-options autonomous-system 4210000001
+set routing-options forwarding-table export PFE-ECMP
+set protocols router-advertisement interface fxp0.0
+set protocols bgp group UNDERLAY type external
+set protocols bgp group UNDERLAY family inet unicast
+set protocols bgp group UNDERLAY export BGP_LOOPBACK0
+set protocols bgp group UNDERLAY peer-as 65501
+set protocols bgp group UNDERLAY local-as 65513
+set protocols bgp group UNDERLAY multipath multiple-as
+set protocols bgp group UNDERLAY as-override
+set protocols bgp group UNDERLAY neighbor 10.0.3.2
+set protocols bgp group UNDERLAY neighbor 10.0.3.6
+set protocols bgp group OVERLAY type internal
+set protocols bgp group OVERLAY local-address 10.255.254.3
+set protocols bgp group OVERLAY family evpn signaling
+set protocols bgp group OVERLAY multipath
+set protocols bgp group OVERLAY neighbor 10.255.255.1
+set protocols bgp group OVERLAY neighbor 10.255.255.2
+set protocols bgp group OVERLAY vpn-apply-export
+set protocols bgp hold-time 10
